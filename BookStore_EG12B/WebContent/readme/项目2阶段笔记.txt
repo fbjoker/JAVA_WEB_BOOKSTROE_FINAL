@@ -1,0 +1,76 @@
+完成登录和注册功能[使用Servlet]，搭建项目的结构
+
+项目功能分析从前向后分析，开发倒序开发
+
+步骤：
+	1、创建数据库+表user
+		bookstore_180808
+		bs_user:保存用户数据
+			id 
+			username
+			password
+			email
+			
+		# 创建数据库
+		CREATE DATABASE bookstore_180808;
+		
+		# 创建表
+		CREATE TABLE bs_user(  #表对应User类，表中的一条数据对应java中的一个user对象
+		 id INT(11) PRIMARY KEY AUTO_INCREMENT,
+		 username VARCHAR(100) NOT NULL UNIQUE,# varchar(100) 和 char(100)
+		 `password` VARCHAR(100),
+		 email VARCHAR(100)
+		);	
+	2、创建表对应的实体类User
+	
+	3、在项目中导入 数据库相关的jar包[WEB-INF/lib   不能手动buildpath]
+		- mysql-connection.jar 数据库连接的驱动包
+		- druid.jar 数据库连接池包 + druid配置文件(驱动类名、账号密码、数据库连接的url)
+		- dbutils.jar 数据库的帮助工具jar包(QueryRunner、ResultSetHandler：结果集解析的帮助工具类   )
+	4、创建JDBCUtils[提供获取数据库连接和释放连接的方法]
+	
+	5、创建BaseDao[提供通用的增删改查的方法]  data access object
+		- 增删改： update()
+		- 查询一条记录并封装为一个对象的方法： getBean();
+		- 查询多条记录封装位对象集合的方法： getBeanList();
+		- 查询第一行第一列数据的方法:  getScalar();
+ 		- 批量增删改：  batchUpdate();
+	6、UserDao: 对应一张表提供一个Dao，封装操作表的方法
+		面向接口编程：  接口就是约束 ， 需求可能会发生变化，经常扩展功能的模块一般使用接口约束方法的具体的结构
+		interface UserDao  约束对user表的具体操作
+		class UserDaoImpl extends BaseDao implements UserDao:    具体对对user表操作的实现
+		完成登录和注册功能本质就是对数据库user表的操作
+			- 登录： 根据用户输入的账号密码查询用户
+				User[在数据库查询到的user对象] getUserByUsernameAndPassword(User[用户提交的由账号密码封装对象] user);
+			- 注册： 将用户提交的账号密码邮箱保存到数据库中
+				int saveUser(User[用户提交的注册信息封装的用户对象] user);
+	7、创建LoginServlet处理登录请求
+	
+	8、创建RegistServlet处理注册请求
+
+   	9、使用三层架构优化项目	
+   	
+   	
+   		表示层：服务员
+   			用户能够直接访问的内容： html、servlet
+   			给用户显示页面数据、收集用户的需求
+   			login.html、regist.html
+   			LoginServlet、RegistServlet
+   			
+   		业务层：厨师
+   			连接表示层和数据持久化层的中间层，  凡是表示层和数据层 不方便编写的代码全部写在业务层
+   			interface UserSercvice: 处理用户相关的业务,业务方法由用户提交的请求决定
+   					User login(User user);//  业务方法的参数由 dao层对应的方法决定，还可能需要根据自己的业务逻辑代码决定
+   					boolean regist(User user);// 业务方法返回值 返回表示层能够直接使用的结果
+   				- 业务层需求经常扩展，也采用面向接口编程的思想
+   				- class UserServiceImpl implements UserService;
+   		数据持久化层: 采购
+   			操作数据库，和数据库数据交互的代码
+   			UserDaoImpl
+   	
+   	
+   		- 修改Servlet，处理登录和注册请求时通过调用业务层方法实现
+   	
+   	
+   	
+	

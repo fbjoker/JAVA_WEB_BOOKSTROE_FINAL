@@ -1,0 +1,77 @@
+在项目中使用jsp
+
+	1、将项目所有的页面修改为jsp页面
+		1.1 方案1：  创建和html同名的jsp页面，让后将html的内容拷贝到jsp中
+		1.2 方案2： jsp页面只比html多了第一行page指令
+			- 在html页面内第一行编写page指令
+			- 修改html页面后缀为jsp
+	2、提取页面共有部分使用静态包含指令引入
+		在WEB-INF下创建include文件夹 存放提取的页面：  不希望用户直接访问
+		2.1 用户访问页面的右上角的登录状态栏
+			提取user_header.jsp页面 ，存放用户页面的右上角登录状态栏
+			在需要使用提取页面的页面中通过include静态包含[include静态包含由服务器负责解析执行，可以访问WEB-INF下的资源]
+		2.2 管理员访问的页面[manager]的右上角的状态栏
+			提取管理员页面共有部分到manager_header.jsp 页面中
+			在所有的管理员访问页面中  使用静态包含引入header页面替换之前的div
+		2.3 所有页面共有的部分
+			所有页面都有 link引入css样式、可能都会引入jquery文件，并且页面中大量使用了相对路径如果转发会造成相对路径失效
+			开发中不推荐直接使用相对路径，可以添加一个base标签解决相对路径可能失效的问题
+			- 修改页面中所有的相对路径和base标签拼接
+			- 修改提取的页面中的地址
+			- 修改servlet中转发和重定向的地址后缀名为jsp
+			
+			- 在base.jsp页面中 通过request对象动态拼接base标签的url地址
+				<base href="<%=request.getScheme() %>://<%=request.getServerName() %>:<%=request.getServerPort() %><%=request.getContextPath() %>/"/>
+	3、登录注册失败后 转发回来时可以给用户提示失败消息
+		3.1 用户从login.jsp页面提交登录请求给LoginServlet处理，如果登录失败又转发到login.jsp页面，此时需要给用户错误提示
+			LoginServlet判断登录失败时，可以在request域中设置一个错误消息， 转发到login页面时可以取出显示
+		3.2 用户从regist.jsp页面中提交注册请求时 RegistServlet如果判断注册失败
+			可以在request域中设置错误消息，再转发到regist.jsp页面时取出显示
+	4、用户注册失败后，表单中的数据重置了，用户体验不好
+		可以表单回显
+		- 在regist.jsp 页面中  如果是注册失败转发回来的 获取注册失败的表单数据回显
+	5、优化Servlet，使用一个Serevlet处理一类请求	
+		模仿UserService：
+			- 所有的和User相关的业务都封装到userService中
+		模仿HttpServlet：
+			- 浏览器发送的请求如果是get请求 HttpServlet会调用doGet处理
+				如果是post请求会调用doPost
+			- 浏览器提交请求给服务器时 通过service方法处理
+				先不处理请求，获取请求方式
+				再根据请求方式调用对应的处理方法
+		处理用户相关的请求可以创建一个UserServlet：
+			- 有请求访问UserServlet时
+				服务器会调用doGet方法处理请求
+					- 先不处理请求，判断用户的请求目的是什么	
+						约束表单提交数据给UserServlet时必须提交一个参数[告诉UserServlet表单提交的目的]	
+						获取表单提交的目的参数，如果是登录表单可以提交login参数，如果是注册表单可以提交regist参数
+						服务器根据参数判断目的调用对应的方法处理请求
+		5.1 在login和regist页面的登录注册表单中通过隐藏表单项携带type参数告诉servlet具体的目的
+		5.2 创建UserServlet处理所有的和用户相关的请求
+		5.3 login和regist页面中表单提交的action地址修改为UserServlet
+		5.4 继续优化：
+			通过反射控制type值对应的方法的调用
+
+		5.5 创建BaseServlet，统一管理子类方法的调用
+			- 创建BaseServlet继承HttpServlet
+			- 在BaseServlet中实现doGet和doPost方法
+			- 在doGet方法中 通过反射调用子类的type对应的方法
+			
+			- 在创建UserServlet时继承BaseServlet
+			- UserServlet不能实现doGet和doPost
+			- UserServlet中提供type对应的方法处理请求，方法结构必须和doGet一样
+
+
+			当用户访问UserServlet时必须提交type参数，服务器会调用UserServlet的生命周期方法
+				- 构造器创建UseServlet对象
+				- 调用init方法初始化
+				- 调用service处理请求
+					自己没有，查找BaseServlet
+					BaseServlet也没有，找HttpServlet[HttpServlet中service调用了重载的service方法，根据请求方式会调用doGet或doPost]
+				- 调用doGet处理请求时现在自己类中查找，没有
+					去BaseServlet中查找，查找到，则执行，此时可以在doGet方法中通过反射控制子类type对应的方法的调用
+
+
+
+
+
